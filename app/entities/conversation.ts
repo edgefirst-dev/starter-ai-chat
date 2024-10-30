@@ -14,6 +14,6 @@ export class Conversation extends TableEntity {
 	}
 
 	get path() {
-		return `/conversations/${this.id.valueOf()}`;
+		return `/chat/${this.id.valueOf()}`;
 	}
 }
