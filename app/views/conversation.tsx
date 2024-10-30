@@ -105,7 +105,7 @@ export default function Component({ loaderData }: Route.ComponentProps) {
 	return (
 		<main
 			role="application"
-			className="flex flex-col justify-between items-start max-w-screen-xl w-full h-full rounded-3xl bg-neutral-100 p-5"
+			className="flex flex-col justify-between items-start w-full h-full p-5"
 		>
 			<ScrollArea className="w-full flex flex-col gap-4">
 				{messages.map((message) => (
@@ -161,7 +161,7 @@ function ChatForm({ onSubmit, messages }: ChatFormProps) {
 				if ($element instanceof HTMLInputElement) onSubmit($element.value);
 			}}
 			method="post"
-			className="p-4 flex gap-x-2 w-full"
+			className="flex gap-x-2 w-full"
 		>
 			<input
 				type="hidden"
@@ -183,6 +183,7 @@ function ChatForm({ onSubmit, messages }: ChatFormProps) {
 				aria-label="Message"
 				disabled={isPending}
 				placeholder="Type your message..."
+				autoFocus
 				value={message}
 				onChange={(event) => setMessage(event.currentTarget.value)}
 			/>
