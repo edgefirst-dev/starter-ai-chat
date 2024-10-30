@@ -9,7 +9,7 @@ import { cn } from "app:helpers/cn";
 import { rateLimit } from "app:helpers/rate-limit";
 import { badRequest, ok } from "app:helpers/response";
 import { usePrevious } from "app:hooks/use-previous";
-import type * as Route from "types:views/+types.chat";
+import type * as Route from "types:views/+types.conversation";
 import type { RoleScopedChatInput } from "@cloudflare/workers-types";
 import { StringParser, ai } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";

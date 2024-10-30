@@ -26,7 +26,9 @@ export const routes = [
 	index("./views/home.tsx"),
 	route("profile", "./views/profile.tsx"),
 
-	route("/chat", "./views/chat.tsx"),
+	route("chat", "./layouts/chat.tsx", [
+		route(":conversation", "./views/conversation.tsx"),
+	]),
 
 	// Catch-all Route
 	route("*", "./views/catch-all.tsx"),
