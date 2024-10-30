@@ -1,5 +1,5 @@
-import { Button } from "app:components/button";
 import { Spinner } from "app:components/spinner";
+import { Button } from "app:components/ui/button";
 import { anonymous } from "app:helpers/auth";
 import { parseBody } from "app:helpers/body-parser";
 import { cn } from "app:helpers/cn";

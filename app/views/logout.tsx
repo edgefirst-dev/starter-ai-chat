@@ -1,5 +1,5 @@
-import { Button } from "app:components/button";
 import { Spinner } from "app:components/spinner";
+import { Button } from "app:components/ui/button";
 import { authenticate } from "app:helpers/auth";
 import { cn } from "app:helpers/cn";
 import { ok } from "app:helpers/response";

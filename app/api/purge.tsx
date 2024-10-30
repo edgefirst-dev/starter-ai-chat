@@ -1,5 +1,5 @@
-import { Button } from "app:components/button";
 import { Spinner } from "app:components/spinner";
+import { Button } from "app:components/ui/button";
 import { rootOnly } from "app:helpers/auth";
 import { cn } from "app:helpers/cn";
 import { Cookies } from "app:helpers/cookies";
