@@ -1,0 +1,65 @@
+name = "edgefirst-dev-starter"
+
+main = "./worker.ts"
+
+# Update the compatibility date to the date you want to lock to
+compatibility_date = "2024-10-11"
+
+# This is needed for AsyncLocalStorage to work
+compatibility_flags = ["nodejs_compat"]
+
+# Set the development port to be 3000
+dev.port = 3000
+
+# Enable serving static assets from the `./build/client` directory
+assets = { directory = "./build/client" }
+
+# Enables the Browser Rendering service
+# To use it locally, update the ./scripts/dev.ts file and add `--remote` after 
+# the `bun start` command
+browser = { binding = "BROWSER" }
+
+# To be able to use assets in your Worker, Smart placement needs to be off
+[placement]
+mode = "off"
+
+# Enable Observability to get logs of your Worker
+[observability]
+enabled = true
+
+# Configure your D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-chat"
+database_id = "cf734ce6-34d4-45a0-928b-a7e1c8c78993"
+migrations_dir = "./db/migrations"
+
+# Configure your KV namespace
+[[kv_namespaces]]
+binding = "KV"
+id = "6a3229e20c6849b5a09b141de2ae2ef0"
+
+# Configure your R2 bucket
+[[r2_buckets]]
+binding = "FS"
+bucket_name = "ai-chat"
+
+# Configure this worker as a queue producer
+[[queues.producers]]
+queue = "ai-chat"
+binding = "QUEUE"
+
+# Configure this worker as a queue consumer
+[[queues.consumers]]
+queue = "ai-chat"
+
+# Enables the Workers AI service
+# Note that using AI on development can incur additional costs as it uses Worker
+# cloud resources and not your local machine
+[ai]
+binding = "AI"
+
+# Note that this will trigger your Worker every minute, increasing your request
+# count and potentially incurring additional costs
+[triggers]
+crons = ["* * * * *"]

@@ -1,0 +1,11 @@
+# Folders
+/node_modules
+/.cache
+/.react-router
+/.wrangler
+/coverage
+/build
+
+# Files
+.DS_Store
+.dev.vars
