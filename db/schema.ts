@@ -191,6 +191,19 @@ export const sessions = sqliteTable("sessions", {
 		.references(() => users.id, { onDelete: "cascade" }),
 });
 
+export const conversations = sqliteTable("conversations", {
+	id: cuid("id", "conversations_id_unique"),
+	// Timestamps
+	createdAt,
+	updatedAt,
+	// Attributes
+	name: text("name", { mode: "text" }).notNull(),
+	// Relations
+	userId: text("user_id", { mode: "text" })
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+});
+
 export const usersRelations = relations(users, ({ many, one }) => {
 	return {
 		audits: many(audits),
@@ -237,6 +250,15 @@ export const sessionsRelations = relations(sessions, ({ one }) => {
 	};
 });
 
+export const conversationRelations = relations(conversations, ({ one }) => {
+	return {
+		user: one(users, {
+			fields: [conversations.userId],
+			references: [users.id],
+		}),
+	};
+});
+
 export default {
 	users,
 	audits,
@@ -244,9 +266,11 @@ export default {
 	memberships,
 	credentials,
 	sessions,
+	conversations,
 	usersRelations,
 	teamsRelations,
 	membershipsRelations,
 	credentialsRelations,
 	sessionsRelations,
+	conversationRelations,
 };

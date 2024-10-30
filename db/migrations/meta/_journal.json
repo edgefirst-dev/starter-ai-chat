@@ -29,6 +29,13 @@
 			"when": 1730187479015,
 			"tag": "20241029073759_closed_earthquake",
 			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "6",
+			"when": 1730331414940,
+			"tag": "20241030233654_glossy_giant_man",
+			"breakpoints": true
 		}
 	]
 }
