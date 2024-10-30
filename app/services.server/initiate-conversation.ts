@@ -9,7 +9,10 @@ export async function initiateConversation(
 		conversations: new ConversationsRepository(),
 	},
 ) {
-	let conversation = await deps.conversations.create(input.user);
+	let conversation = await deps.conversations.create(
+		input.user,
+		`New conversation of ${input.user.displayName}`,
+	);
 	await kv().set(conversation.key, []);
 	return conversation;
 }
@@ -21,7 +24,7 @@ export namespace initiateConversation {
 
 	export interface Dependencies {
 		readonly conversations: {
-			create(user: User): Promise<Conversation>;
+			create(user: User, name: string): Promise<Conversation>;
 		};
 	}
 }

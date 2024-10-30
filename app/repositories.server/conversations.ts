@@ -5,13 +5,10 @@ import { orm } from "@edgefirst-dev/core";
 import { eq } from "drizzle-orm";
 
 export class ConversationsRepository {
-	async create(user: User) {
+	async create(user: User, name: string) {
 		let [row] = await orm()
 			.insert(schema.conversations)
-			.values({
-				userId: user.id,
-				name: `New conversation of ${user.displayName}`,
-			})
+			.values({ userId: user.id, name })
 			.returning();
 		if (row) return Conversation.from(row);
 		throw new Error("Failed to create conversation");
