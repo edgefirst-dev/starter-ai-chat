@@ -3,6 +3,7 @@ import type { User } from "app:entities/user";
 import { ConversationsRepository } from "app:repositories.server/conversations";
 import { type CUID, ai, kv, waitUntil } from "@edgefirst-dev/core";
 import { ObjectParser } from "@edgefirst-dev/data/parser";
+import { updateConversationName } from "./update-conversation-name";
 
 export async function sendMessageToConversation(
 	input: sendMessageToConversation.Input,
@@ -45,6 +46,21 @@ export async function sendMessageToConversation(
 			{ role: "assistant", content: response },
 		]),
 	);
+
+	if (previousData.length > 0) return response;
+
+	if (conversation.updatedAt.getTime() === conversation.createdAt.getTime()) {
+		let { summary: name } = await ai().summarization(
+			"@cf/facebook/bart-large-cnn",
+			{ input_text: input.message, max_length: 30 },
+		);
+
+		await updateConversationName({
+			user: input.user,
+			id: conversation.id,
+			name,
+		});
+	}
 
 	return response;
 }
