@@ -56,7 +56,7 @@ export function Layout({ children }: { children: ReactNode }) {
 				<Meta />
 				<Links />
 			</head>
-			<body className="flex flex-col justify-center items-center p-5 h-dvh w-screen">
+			<body className="min-h-dvh w-screen">
 				{children}
 				<ScrollRestoration />
 				<Scripts />

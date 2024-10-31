@@ -9,13 +9,15 @@ import { cn } from "app:helpers/cn";
 import { rateLimit } from "app:helpers/rate-limit";
 import { badRequest, ok } from "app:helpers/response";
 import { usePrevious } from "app:hooks/use-previous";
-import type * as Route from "types:views/+types.conversation";
+import { ConversationsRepository } from "app:repositories.server/conversations";
+import { updateConversationName } from "app:services.server/update-conversation-name";
+import type * as Route from "types:views/chat/+types.detail";
 import type { RoleScopedChatInput } from "@cloudflare/workers-types";
 import { StringParser, ai } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";
 import { type FormParser, ObjectParser } from "@edgefirst-dev/data/parser";
 import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
+import { Form, redirect, useFetcher } from "react-router";
 import { useSpinDelay } from "spin-delay";
 
 interface Message {
@@ -24,9 +26,20 @@ interface Message {
 	text: string;
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
 	let user = await authenticate(request, "/login");
+	let [conversation] = await new ConversationsRepository().findUserConversation(
+		user,
+		new StringParser(params.id).cuid(),
+	);
+
+	if (!conversation) throw redirect("/chat");
+
 	return ok({
+		conversation: {
+			name: conversation.name,
+		},
+
 		user: {
 			avatar: user.avatar,
 			initials: user.displayName
@@ -37,7 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 	});
 }
 
-export async function action({ request }: Route.LoaderArgs) {
+export async function action({ request, params }: Route.LoaderArgs) {
 	await rateLimit(request.headers);
 	let user = await authenticate(request, "/login");
 
@@ -45,6 +58,15 @@ export async function action({ request }: Route.LoaderArgs) {
 		let data = await parseBody(
 			request,
 			class extends Data<FormParser> {
+				get intent() {
+					return new StringParser(this.parser.string("intent")).enum(
+						"update-name",
+						"send-message",
+					);
+				}
+				get name() {
+					return this.parser.string("name");
+				}
 				get previous() {
 					let previous = JSON.parse(this.parser.string("previous"));
 					if (!Array.isArray(previous))
@@ -67,22 +89,35 @@ export async function action({ request }: Route.LoaderArgs) {
 			},
 		);
 
-		let messages: RoleScopedChatInput[] = [
-			{
-				role: "system",
-				content: `You are a friendly assistant about Cloudflare Development Platform, the user name is ${user.displayName}, use consice responses.`,
-			},
-			...data.previous,
-			{ role: "user", content: data.message },
-		];
+		if (data.intent === "update-name") {
+			await updateConversationName({
+				id: new StringParser(params.id).cuid(),
+				user: user,
+				name: data.name,
+			});
+			return ok({ intent: data.intent });
+		}
 
-		let result = await ai().textGeneration("@cf/meta/llama-3-8b-instruct", {
-			messages,
-			stream: false,
-		});
+		if (data.intent === "send-message") {
+			let messages: RoleScopedChatInput[] = [
+				{
+					role: "system",
+					content: `You are a friendly assistant about Cloudflare Development Platform, the user name is ${user.displayName}, use consice responses.`,
+				},
+				...data.previous,
+				{ role: "user", content: data.message },
+			];
 
-		if (result instanceof ReadableStream) throw new Error("Invalid response");
-		return ok({ result });
+			let result = await ai().textGeneration("@cf/meta/llama-3-8b-instruct", {
+				messages,
+				stream: false,
+			});
+
+			if (result instanceof ReadableStream) throw new Error("Invalid response");
+			return ok({ intent: data.intent, result });
+		}
+
+		throw new Error("Invalid intent");
 	} catch (error) {
 		console.error(error);
 		return badRequest({ message: "Invalid request" });
@@ -96,6 +131,7 @@ export default function Component({ loaderData }: Route.ComponentProps) {
 	useEffect(() => {
 		if (!fetcher.data) return;
 		if (!fetcher.data.ok) return;
+		if (fetcher.data.intent !== "send-message") return;
 		let { response } = fetcher.data.result as { response: string };
 		setMessages((c) =>
 			c.concat({ id: crypto.randomUUID(), sender: "bot", text: response }),
@@ -103,32 +139,42 @@ export default function Component({ loaderData }: Route.ComponentProps) {
 	}, [fetcher.data]);
 
 	return (
-		<main
-			role="application"
-			className="flex flex-col justify-between items-start w-full h-full p-5"
-		>
-			<ScrollArea className="w-full flex flex-col gap-4">
-				{messages.map((message) => (
-					<ChatMessage
-						key={message.id}
-						user={loaderData.user}
-						message={message}
+		<main role="application" className="flex flex-col h-full w-full p-5 gap-5">
+			<header className="flex-shrink-0">
+				<Form method="post">
+					<input type="hidden" name="intent" value="update-name" />
+					<Input
+						type="text"
+						name="name"
+						defaultValue={loaderData.conversation.name}
 					/>
-				))}
-			</ScrollArea>
+				</Form>
+			</header>
 
-			<ChatForm
-				messages={messages}
-				onSubmit={(message) => {
-					setMessages((c) =>
-						c.concat({
-							id: crypto.randomUUID(),
-							sender: "user",
-							text: message,
-						}),
-					);
-				}}
-			/>
+			<div className="flex flex-col justify-between items-start flex-grow">
+				<ScrollArea className="w-full flex flex-col gap-4">
+					{messages.map((message) => (
+						<ChatMessage
+							key={message.id}
+							user={loaderData.user}
+							message={message}
+						/>
+					))}
+				</ScrollArea>
+
+				<ChatForm
+					messages={messages}
+					onSubmit={(message) => {
+						setMessages((c) =>
+							c.concat({
+								id: crypto.randomUUID(),
+								sender: "user",
+								text: message,
+							}),
+						);
+					}}
+				/>
+			</div>
 		</main>
 	);
 }
@@ -163,6 +209,7 @@ function ChatForm({ onSubmit, messages }: ChatFormProps) {
 			method="post"
 			className="flex gap-x-2 w-full"
 		>
+			<input type="hidden" name="intent" value="send-message" />
 			<input
 				type="hidden"
 				name="previous"

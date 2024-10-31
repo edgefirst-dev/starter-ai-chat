@@ -9,10 +9,17 @@ export async function initiateConversation(
 		conversations: new ConversationsRepository(),
 	},
 ) {
-	let conversation = await deps.conversations.create(
-		input.user,
-		`New conversation of ${input.user.displayName}`,
-	);
+	// We use the current datetime to generate a unique name for the conversation
+	let name = new Date().toLocaleString("en", {
+		year: "2-digit",
+		day: "2-digit",
+		month: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+	});
+
+	let conversation = await deps.conversations.create(input.user, name);
 	await kv().set(conversation.key, []);
 	return conversation;
 }
