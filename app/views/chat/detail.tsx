@@ -10,10 +10,11 @@ import { rateLimit } from "app:helpers/rate-limit";
 import { badRequest, ok } from "app:helpers/response";
 import { usePrevious } from "app:hooks/use-previous";
 import { ConversationsRepository } from "app:repositories.server/conversations";
+import { sendMessageToConversation } from "app:services.server/send-message-to-conversation";
 import { updateConversationName } from "app:services.server/update-conversation-name";
 import type * as Route from "types:views/chat/+types.detail";
 import type { RoleScopedChatInput } from "@cloudflare/workers-types";
-import { StringParser, ai } from "@edgefirst-dev/core";
+import { StringParser, kv } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";
 import { type FormParser, ObjectParser } from "@edgefirst-dev/data/parser";
 import { useEffect, useState } from "react";
@@ -35,9 +36,19 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 	if (!conversation) throw redirect("/chat");
 
+	let previous = await kv().get<RoleScopedChatInput[]>(conversation.key);
+	let messages = previous.data ?? [];
+
 	return ok({
 		conversation: {
 			name: conversation.name,
+			messages: messages.map((m) => {
+				return {
+					id: crypto.randomUUID(),
+					sender: m.role === "user" ? "user" : "bot",
+					text: m.content,
+				} satisfies Message;
+			}),
 		},
 
 		user: {
@@ -99,22 +110,13 @@ export async function action({ request, params }: Route.LoaderArgs) {
 		}
 
 		if (data.intent === "send-message") {
-			let messages: RoleScopedChatInput[] = [
-				{
-					role: "system",
-					content: `You are a friendly assistant about Cloudflare Development Platform, the user name is ${user.displayName}, use consice responses.`,
-				},
-				...data.previous,
-				{ role: "user", content: data.message },
-			];
-
-			let result = await ai().textGeneration("@cf/meta/llama-3-8b-instruct", {
-				messages,
-				stream: false,
+			let response = await sendMessageToConversation({
+				id: new StringParser(params.id).cuid(),
+				user: user,
+				message: data.message,
 			});
 
-			if (result instanceof ReadableStream) throw new Error("Invalid response");
-			return ok({ intent: data.intent, result });
+			return ok({ intent: data.intent, response });
 		}
 
 		throw new Error("Invalid intent");
@@ -126,13 +128,15 @@ export async function action({ request, params }: Route.LoaderArgs) {
 
 export default function Component({ loaderData }: Route.ComponentProps) {
 	let fetcher = useFetcher<Route.ActionData>({ key: "chat" });
-	let [messages, setMessages] = useState<Message[]>([]);
+	let [messages, setMessages] = useState<Message[]>(
+		() => loaderData.conversation.messages,
+	);
 
 	useEffect(() => {
 		if (!fetcher.data) return;
 		if (!fetcher.data.ok) return;
 		if (fetcher.data.intent !== "send-message") return;
-		let { response } = fetcher.data.result as { response: string };
+		let response = fetcher.data.response;
 		setMessages((c) =>
 			c.concat({ id: crypto.randomUUID(), sender: "bot", text: response }),
 		);
@@ -152,14 +156,16 @@ export default function Component({ loaderData }: Route.ComponentProps) {
 			</header>
 
 			<div className="flex flex-col justify-between items-start flex-grow">
-				<ScrollArea className="w-full flex flex-col gap-4">
-					{messages.map((message) => (
-						<ChatMessage
-							key={message.id}
-							user={loaderData.user}
-							message={message}
-						/>
-					))}
+				<ScrollArea className="w-full">
+					<div className="flex flex-col gap-4 w-full">
+						{messages.map((message) => (
+							<ChatMessage
+								key={message.id}
+								user={loaderData.user}
+								message={message}
+							/>
+						))}
+					</div>
 				</ScrollArea>
 
 				<ChatForm
