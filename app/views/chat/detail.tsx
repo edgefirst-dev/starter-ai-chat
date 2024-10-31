@@ -17,7 +17,7 @@ import type { RoleScopedChatInput } from "@cloudflare/workers-types";
 import { StringParser, kv } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";
 import { type FormParser, ObjectParser } from "@edgefirst-dev/data/parser";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Form, redirect, useFetcher } from "react-router";
 import { useSpinDelay } from "spin-delay";
 
@@ -127,27 +127,15 @@ export async function action({ request, params }: Route.LoaderArgs) {
 }
 
 export default function Component({ loaderData }: Route.ComponentProps) {
-	let fetcher = useFetcher<Route.ActionData>({ key: "chat" });
-	let [messages, setMessages] = useState<Message[]>(
-		() => loaderData.conversation.messages,
-	);
-
-	useEffect(() => {
-		if (!fetcher.data) return;
-		if (!fetcher.data.ok) return;
-		if (fetcher.data.intent !== "send-message") return;
-		let response = fetcher.data.response;
-		setMessages((c) =>
-			c.concat({ id: crypto.randomUUID(), sender: "bot", text: response }),
-		);
-	}, [fetcher.data]);
+	let messages = loaderData.conversation.messages;
 
 	return (
-		<main role="application" className="flex flex-col h-full w-full p-5 gap-5">
+		<main role="application" className="flex flex-col h-dvh w-full p-5 gap-5">
 			<header className="flex-shrink-0">
-				<Form method="post">
+				<Form method="post" className="contents">
 					<input type="hidden" name="intent" value="update-name" />
 					<Input
+						key={loaderData.conversation.name}
 						type="text"
 						name="name"
 						defaultValue={loaderData.conversation.name}
@@ -155,45 +143,30 @@ export default function Component({ loaderData }: Route.ComponentProps) {
 				</Form>
 			</header>
 
-			<div className="flex flex-col justify-between items-start flex-grow">
-				<ScrollArea className="w-full">
-					<div className="flex flex-col gap-4 w-full">
-						{messages.map((message) => (
-							<ChatMessage
-								key={message.id}
-								user={loaderData.user}
-								message={message}
-							/>
-						))}
-					</div>
-				</ScrollArea>
+			<ScrollArea className="w-full h-auto flex-grow">
+				<div className="flex flex-col gap-4 w-full">
+					{messages.map((message) => (
+						<ChatMessage
+							key={message.id}
+							user={loaderData.user}
+							message={message}
+						/>
+					))}
+				</div>
+			</ScrollArea>
 
-				<ChatForm
-					messages={messages}
-					onSubmit={(message) => {
-						setMessages((c) =>
-							c.concat({
-								id: crypto.randomUUID(),
-								sender: "user",
-								text: message,
-							}),
-						);
-					}}
-				/>
-			</div>
+			<ChatForm messages={messages} />
 		</main>
 	);
 }
 
 interface ChatFormProps {
 	messages: Message[];
-	onSubmit(message: string): void;
 }
 
-function ChatForm({ onSubmit, messages }: ChatFormProps) {
-	let fetcher = useFetcher<typeof action>({ key: "chat" });
-
-	let [message, setMessage] = useState("");
+function ChatForm({ messages }: ChatFormProps) {
+	let fetcher = useFetcher<typeof action>();
+	let inputRef = useRef<HTMLInputElement>(null);
 
 	let isPending = useSpinDelay(fetcher.state === "submitting", {
 		delay: 50,
@@ -203,17 +176,16 @@ function ChatForm({ onSubmit, messages }: ChatFormProps) {
 	let wasPending = usePrevious(isPending);
 
 	useEffect(() => {
-		if (wasPending && !isPending) setMessage("");
+		let $input = inputRef.current;
+		if ($input && wasPending && !isPending) {
+			$input.value = "";
+		}
 	}, [isPending, wasPending]);
 
 	return (
 		<fetcher.Form
-			onSubmit={async (event) => {
-				let $element = event.currentTarget.elements.namedItem("message");
-				if ($element instanceof HTMLInputElement) onSubmit($element.value);
-			}}
 			method="post"
-			className="flex gap-x-2 w-full"
+			className="flex gap-x-2 w-full mt-auto flex-shrink-0"
 		>
 			<input type="hidden" name="intent" value="send-message" />
 			<input
@@ -229,6 +201,7 @@ function ChatForm({ onSubmit, messages }: ChatFormProps) {
 				)}
 			/>
 			<Input
+				ref={inputRef}
 				name="message"
 				required
 				minLength={1}
@@ -237,10 +210,8 @@ function ChatForm({ onSubmit, messages }: ChatFormProps) {
 				disabled={isPending}
 				placeholder="Type your message..."
 				autoFocus
-				value={message}
-				onChange={(event) => setMessage(event.currentTarget.value)}
 			/>
-			<Button type="submit" disabled={isPending}>
+			<Button type="submit" disabled={isPending} className="relative">
 				{isPending && (
 					<span className="absolute inset-0 flex justify-center items-center">
 						<Spinner aria-hidden className="size-5" />
@@ -258,8 +229,15 @@ interface ChatMessageProps {
 }
 
 function ChatMessage({ user, message }: ChatMessageProps) {
+	let ref = useRef<HTMLDivElement>(null);
+
+	useLayoutEffect(() => {
+		ref.current?.scrollIntoView({ behavior: "smooth" });
+	}, []);
+
 	return (
 		<div
+			ref={ref}
 			className={cn("flex", {
 				"justify-end ml-10": message.sender === "user",
 				"justify-start mr-10": message.sender === "bot",
