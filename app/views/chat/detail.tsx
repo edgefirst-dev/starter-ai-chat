@@ -18,7 +18,7 @@ import { StringParser, kv } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";
 import { type FormParser, ObjectParser } from "@edgefirst-dev/data/parser";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Form, redirect, useFetcher } from "react-router";
+import { Form, type MetaFunction, redirect, useFetcher } from "react-router";
 import { useSpinDelay } from "spin-delay";
 
 interface Message {
@@ -125,6 +125,11 @@ export async function action({ request, params }: Route.LoaderArgs) {
 		return badRequest({ message: "Invalid request" });
 	}
 }
+
+export const meta: MetaFunction<Route.LoaderData> = ({ data }) => {
+	// @ts-expect-error
+	return [{ title: data.conversation.name }];
+};
 
 export default function Component({ loaderData }: Route.ComponentProps) {
 	let messages = loaderData.conversation.messages;
