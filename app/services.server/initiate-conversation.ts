@@ -1,7 +1,7 @@
 import type { Conversation } from "app:entities/conversation";
 import type { User } from "app:entities/user";
 import { ConversationsRepository } from "app:repositories.server/conversations";
-import { kv } from "@edgefirst-dev/core";
+import { kv } from "edgekitjs";
 
 export async function initiateConversation(
 	input: initiateConversation.Input,

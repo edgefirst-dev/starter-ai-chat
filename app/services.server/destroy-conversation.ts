@@ -1,7 +1,7 @@
 import type { Conversation } from "app:entities/conversation";
 import type { User } from "app:entities/user";
 import { ConversationsRepository } from "app:repositories.server/conversations";
-import { type CUID, kv } from "@edgefirst-dev/core";
+import { type CUID, kv } from "edgekitjs";
 
 export async function destroyConversation(
 	input: destroyConversation.Input,

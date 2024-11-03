@@ -1,8 +1,8 @@
 import type { Conversation } from "app:entities/conversation";
 import type { User } from "app:entities/user";
 import { ConversationsRepository } from "app:repositories.server/conversations";
-import { type CUID, ai, kv, waitUntil } from "@edgefirst-dev/core";
 import { ObjectParser } from "@edgefirst-dev/data/parser";
+import { type CUID, ai, kv, waitUntil } from "edgekitjs";
 import { updateConversationName } from "./update-conversation-name";
 
 export async function sendMessageToConversation(

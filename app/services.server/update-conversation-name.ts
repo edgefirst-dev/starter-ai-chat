@@ -2,7 +2,7 @@ import type { Conversation } from "app:entities/conversation";
 import type { User } from "app:entities/user";
 import { ConversationsRepository } from "app:repositories.server/conversations";
 import type schema from "db:schema";
-import type { CUID } from "@edgefirst-dev/core";
+import type { CUID } from "edgekitjs";
 
 export async function updateConversationName(
 	input: updateConversationName.Input,

@@ -1,8 +1,8 @@
 import { Conversation } from "app:entities/conversation";
 import type { User } from "app:entities/user";
 import schema from "db:schema";
-import { type CUID, orm } from "@edgefirst-dev/core";
 import { and, desc, eq } from "drizzle-orm";
+import { type CUID, orm } from "edgekitjs";
 
 export class ConversationsRepository {
 	async create(user: User, name: string) {

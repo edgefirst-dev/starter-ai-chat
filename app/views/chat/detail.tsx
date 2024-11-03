@@ -14,9 +14,9 @@ import { sendMessageToConversation } from "app:services.server/send-message-to-c
 import { updateConversationName } from "app:services.server/update-conversation-name";
 import type * as Route from "types:views/chat/+types.detail";
 import type { RoleScopedChatInput } from "@cloudflare/workers-types";
-import { StringParser, kv } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";
 import { type FormParser, ObjectParser } from "@edgefirst-dev/data/parser";
+import { StringParser, kv } from "edgekitjs";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Form, type MetaFunction, redirect, useFetcher } from "react-router";
 import { useSpinDelay } from "spin-delay";

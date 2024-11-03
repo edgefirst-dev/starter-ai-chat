@@ -26,9 +26,9 @@ import { ConversationsRepository } from "app:repositories.server/conversations";
 import { destroyConversation } from "app:services.server/destroy-conversation";
 import { initiateConversation } from "app:services.server/initiate-conversation";
 import type * as Route from "types:layouts/+types.chat";
-import { StringParser } from "@edgefirst-dev/core";
 import { Data } from "@edgefirst-dev/data";
 import type { FormParser } from "@edgefirst-dev/data/parser";
+import { StringParser } from "edgekitjs";
 import { MoreHorizontalIcon } from "lucide-react";
 import {
 	Form,
